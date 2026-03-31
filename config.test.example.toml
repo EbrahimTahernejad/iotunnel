@@ -1,0 +1,37 @@
+# iotunnel — test mode config
+# Probes each resolver in the list, measures TCP RTT through the iodine tunnel,
+# and prints a ranked summary. No special privileges required.
+
+mode = "test"
+
+[test]
+iodine_bin = "./iodine"
+
+# Use the literal string "RESOLVER" where the resolver IP should go.
+# iotunnel substitutes it with each resolver from the list below.
+iodine_args = ["-f", "-r", "RESOLVER", "t1.example.com", "-P", "mysecretpassword"]
+
+# Tunnel IPs (must match iodined config on the server)
+tun_ip        = "10.0.0.2"
+server_tun_ip = "10.0.0.1"
+
+# Must match test_port in the server config
+test_port = 5301
+
+# How many ping round-trips to measure per resolver
+pings = 5
+
+# Seconds to wait for iodine to establish the tunnel before giving up
+connect_timeout_secs = 30
+
+# Seconds to wait for a single ping reply before giving up
+ping_timeout_secs = 10
+
+# DNS resolvers to rank
+resolvers = [
+    "8.8.8.8",
+    "8.8.4.4",
+    "1.1.1.1",
+    "1.0.0.1",
+    "9.9.9.9",
+]

@@ -24,3 +24,7 @@ tunnel_port = 5300
 # Backend to proxy upstream data to and relay responses from.
 # Point this at your kcp/tuic/WireGuard server process.
 backend_addr = "127.0.0.1:443"
+
+# Optional: TCP echo port for latency testing (test mode clients connect here).
+# Remove or comment out to disable.
+test_port = 5301

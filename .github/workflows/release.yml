@@ -51,6 +51,7 @@ jobs:
           cp iodine/bin/iodined       "$STAGING/"
           cp config.server.example.toml "$STAGING/"
           cp config.client.example.toml "$STAGING/"
+          cp config.test.example.toml   "$STAGING/"
           tar -czf "iotunnel-linux-x86_64.tar.gz" "$STAGING"
 
       - name: Upload artifact

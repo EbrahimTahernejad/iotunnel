@@ -10,7 +10,8 @@ use std::net::Ipv4Addr;
 use std::sync::Arc;
 
 use anyhow::Result;
-use tokio::net::UdpSocket;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::{TcpListener, UdpSocket};
 use tokio::sync::RwLock;
 use tracing::{info, warn};
 
@@ -139,9 +140,39 @@ pub async fn run(cfg: ServerConfig) -> Result<()> {
         });
     }
 
+    // Optional TCP echo listener for latency testing.
+    if let Some(port) = cfg.test_port {
+        let addr = format!("{}:{}", cfg.tun_ip, port);
+        tokio::spawn(async move {
+            if let Err(e) = run_test_listener(&addr).await {
+                warn!("test listener: {e}");
+            }
+        });
+    }
+
     tokio::signal::ctrl_c().await?;
     info!("shutting down");
     Ok(())
+}
+
+// ── TCP echo listener for latency testing ────────────────────────────────────
+
+async fn run_test_listener(addr: &str) -> Result<()> {
+    let listener = TcpListener::bind(addr).await?;
+    info!("test listener on {addr}");
+    loop {
+        let (stream, peer) = listener.accept().await?;
+        info!("test conn from {peer}");
+        tokio::spawn(async move {
+            let (mut rx, mut tx) = stream.into_split();
+            let mut buf = [0u8; 8];
+            while rx.read_exact(&mut buf).await.is_ok() {
+                if tx.write_all(&buf).await.is_err() {
+                    break;
+                }
+            }
+        });
+    }
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────

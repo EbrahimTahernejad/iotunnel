@@ -3,6 +3,7 @@ mod config;
 mod iodine;
 mod raw_send;
 mod server;
+mod test_client;
 
 use anyhow::{Context, Result};
 use tracing::error;
@@ -39,7 +40,11 @@ async fn main() -> Result<()> {
                 .context("mode=client but [client] section missing")?;
             client::run(ccfg).await
         }
-        m => anyhow::bail!("unknown mode {m:?} — must be \"server\" or \"client\""),
+        "test" => {
+            let tcfg = cfg.test.context("mode=test but [test] section missing")?;
+            test_client::run(tcfg).await
+        }
+        m => anyhow::bail!("unknown mode {m:?} — must be \"server\", \"client\", or \"test\""),
     };
 
     if let Err(e) = result {

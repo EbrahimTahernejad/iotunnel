@@ -2,9 +2,10 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Config {
-    pub mode: String, // "server" or "client"
+    pub mode: String, // "server", "client", or "test"
     pub server: Option<ServerConfig>,
     pub client: Option<ClientConfig>,
+    pub test: Option<TestConfig>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -21,6 +22,9 @@ pub struct ServerConfig {
     /// Backend to forward upstream data to and relay replies from
     /// e.g. "127.0.0.1:443" for a local kcp/tuic server
     pub backend_addr: String,
+    /// If set, a TCP echo listener is started on this port (on tun_ip) for
+    /// latency testing. Used by test-mode clients.
+    pub test_port: Option<u16>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -49,4 +53,28 @@ pub struct ClientConfig {
     pub local_port: u16,
     /// How often (seconds) to send a keepalive to fake_src to hold the NAT entry
     pub nat_keepalive_secs: u64,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct TestConfig {
+    /// Path to iodine client binary
+    pub iodine_bin: String,
+    /// Iodine args with "RESOLVER" as a placeholder for the resolver IP, e.g.:
+    ///   ["-f", "-r", "RESOLVER", "t1.example.com", "-P", "secret"]
+    /// "RESOLVER" is substituted with each resolver in the list at test time.
+    pub iodine_args: Vec<String>,
+    /// Client tunnel IP iodined will assign (typically 10.0.0.2)
+    pub tun_ip: String,
+    /// Server tunnel IP
+    pub server_tun_ip: String,
+    /// Must match server's test_port
+    pub test_port: u16,
+    /// Number of pings per resolver
+    pub pings: u32,
+    /// Seconds to wait for the iodine tunnel to come up before declaring failure
+    pub connect_timeout_secs: u64,
+    /// Seconds to wait for a single ping reply before giving up
+    pub ping_timeout_secs: u64,
+    /// DNS resolvers to test, e.g. ["8.8.8.8", "1.1.1.1"]
+    pub resolvers: Vec<String>,
 }
