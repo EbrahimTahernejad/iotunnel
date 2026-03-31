@@ -10,19 +10,8 @@ env:
 
 jobs:
   build:
-    name: Build — ${{ matrix.target }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact: iotunnel-linux-x86_64
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            artifact: iotunnel-linux-aarch64
-            cross: true
+    name: Build — x86_64
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -31,8 +20,6 @@ jobs:
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
 
       - name: Cache Cargo registry + build
         uses: actions/cache@v4
@@ -41,54 +28,35 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-cargo-
+            ${{ runner.os }}-cargo-
 
-      - name: Install cross (for cross-compilation)
-        if: matrix.cross
-        run: cargo install cross --locked
+      - name: Install build deps
+        run: sudo apt-get update && sudo apt-get install -y build-essential zlib1g-dev
 
-      - name: Build iodine (${{ matrix.target }})
-        if: "!matrix.cross"
-        run: |
-          sudo apt-get update && sudo apt-get install -y build-essential zlib1g-dev
-          make -C iodine
+      - name: Build iodine
+        run: make -C iodine
 
-      - name: Build iodine (aarch64 cross)
-        if: matrix.cross
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu zlib1g-dev
-          make -C iodine \
-            CC=aarch64-linux-gnu-gcc \
-            AR=aarch64-linux-gnu-ar \
-            CFLAGS="-O2"
-
-      - name: Build iotunnel (native)
-        if: "!matrix.cross"
-        run: cargo build --release --target ${{ matrix.target }}
-
-      - name: Build iotunnel (cross)
-        if: matrix.cross
-        run: cross build --release --target ${{ matrix.target }}
+      - name: Build iotunnel
+        run: cargo build --release
 
       - name: Package release archive
         run: |
           TAG="${GITHUB_REF_NAME}"
-          STAGING="iotunnel-${TAG}-${{ matrix.artifact }}"
+          STAGING="iotunnel-${TAG}-linux-x86_64"
           mkdir "$STAGING"
-          cp "target/${{ matrix.target }}/release/iotunnel" "$STAGING/"
-          cp iodine/iodine  "$STAGING/" 2>/dev/null || true
-          cp iodine/iodined "$STAGING/" 2>/dev/null || true
+          cp target/release/iotunnel "$STAGING/"
+          cp iodine/iodine   "$STAGING/"
+          cp iodine/iodined  "$STAGING/"
           cp config.example.toml "$STAGING/"
-          tar -czf "${{ matrix.artifact }}.tar.gz" "$STAGING"
+          tar -czf "iotunnel-linux-x86_64.tar.gz" "$STAGING"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.artifact }}.tar.gz
+          name: iotunnel-linux-x86_64
+          path: iotunnel-linux-x86_64.tar.gz
           if-no-files-found: error
 
   release:
