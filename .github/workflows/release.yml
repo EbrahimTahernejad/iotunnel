@@ -41,7 +41,13 @@ jobs:
             zlib1g-dev libz-mingw-w64-dev
 
       - name: Build iodine (static)
-        run: make -C iodine LDFLAGS="-static" CFLAGS="-O2"
+        # Pass -static as an env var so the Makefile's LDFLAGS += -lz ...
+        # appends to it rather than being replaced by a make command-line arg.
+        # Do NOT pass CFLAGS here — the Makefile's CFLAGS already contains -c;
+        # overriding it on the command line would strip -c and break compilation.
+        run: make -C iodine
+        env:
+          LDFLAGS: "-static"
 
       - name: Build iotunnel (musl static)
         run: cargo build --release --target x86_64-unknown-linux-musl
