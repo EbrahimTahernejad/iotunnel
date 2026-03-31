@@ -6,9 +6,10 @@ mode = "client"
 [client]
 iodine_bin  = "./iodine"
 # -f  keep in foreground (required — iotunnel manages the process lifetime)
-# -r  use the specified DNS server instead of the system resolver
-# arg1: DNS resolver / relay IP (or your iodined server IP for LAN testing)
-# arg2: subdomain delegated to the iodined server
+# -r  skip raw UDP mode (forces traffic through DNS relay, recommended)
+# positional arg 1 (optional): DNS relay / nameserver IP
+#   omit to use /etc/resolv.conf; supply a specific IP to override
+# positional arg 2: subdomain delegated to the iodined server
 # -P  shared password (must match server)
 iodine_args = ["-f", "-r", "203.0.113.1", "t1.example.com", "-P", "mysecretpassword"]
 

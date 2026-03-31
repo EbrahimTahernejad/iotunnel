@@ -7,8 +7,11 @@ mode = "test"
 [test]
 iodine_bin = "./iodine"
 
-# Use the literal string "RESOLVER" where the resolver IP should go.
-# iotunnel substitutes it with each resolver from the list below.
+# -f  keep in foreground (required)
+# -r  skip raw UDP mode (forces traffic through the DNS relay)
+# "RESOLVER" is a positional nameserver argument — iotunnel substitutes it
+#   with each resolver IP from the list below before spawning iodine.
+# The domain and -P follow as normal positional/flag args.
 iodine_args = ["-f", "-r", "RESOLVER", "t1.example.com", "-P", "mysecretpassword"]
 
 # Tunnel IPs (must match iodined config on the server)
