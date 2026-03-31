@@ -18,8 +18,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Rust stable
+      - name: Install Rust stable + musl target
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
 
       - name: Cache Cargo registry + build
         uses: actions/cache@v4
@@ -28,25 +30,28 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          key: ${{ runner.os }}-musl-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-musl-cargo-
 
       - name: Install build deps
-        run: sudo apt-get update && sudo apt-get install -y build-essential zlib1g-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential musl-tools \
+            zlib1g-dev libz-mingw-w64-dev
 
-      - name: Build iodine
-        run: make -C iodine
+      - name: Build iodine (static)
+        run: make -C iodine LDFLAGS="-static" CFLAGS="-O2"
 
-      - name: Build iotunnel
-        run: cargo build --release
+      - name: Build iotunnel (musl static)
+        run: cargo build --release --target x86_64-unknown-linux-musl
 
       - name: Package release archive
         run: |
           TAG="${GITHUB_REF_NAME}"
           STAGING="iotunnel-${TAG}-linux-x86_64"
           mkdir "$STAGING"
-          cp target/release/iotunnel "$STAGING/"
+          cp target/x86_64-unknown-linux-musl/release/iotunnel "$STAGING/"
           cp iodine/bin/iodine        "$STAGING/"
           cp iodine/bin/iodined       "$STAGING/"
           cp config.server.example.toml "$STAGING/"
