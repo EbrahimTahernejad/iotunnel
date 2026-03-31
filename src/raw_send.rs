@@ -62,17 +62,28 @@ impl RawSender {
 
 fn open_raw_socket() -> Result<libc::c_int> {
     // IPPROTO_RAW implies IP_HDRINCL — we supply the full IP+UDP header.
-    let fd = unsafe { libc::socket(libc::AF_INET, libc::SOCK_RAW, libc::IPPROTO_RAW as libc::c_int) };
+    let fd = unsafe {
+        libc::socket(
+            libc::AF_INET,
+            libc::SOCK_RAW,
+            libc::IPPROTO_RAW as libc::c_int,
+        )
+    };
     if fd < 0 {
-        anyhow::bail!("socket(AF_INET, SOCK_RAW, IPPROTO_RAW): {}", std::io::Error::last_os_error());
+        anyhow::bail!(
+            "socket(AF_INET, SOCK_RAW, IPPROTO_RAW): {}",
+            std::io::Error::last_os_error()
+        );
     }
     Ok(fd)
 }
 
 fn send_spoofed(fd: libc::c_int, msg: &RawSendMsg, ip_id: u16) -> std::io::Result<()> {
     let pkt = build_packet(
-        msg.src_ip, msg.src_port,
-        msg.dst_ip, msg.dst_port,
+        msg.src_ip,
+        msg.src_port,
+        msg.dst_ip,
+        msg.dst_port,
         &msg.payload,
         ip_id,
     );
@@ -80,8 +91,8 @@ fn send_spoofed(fd: libc::c_int, msg: &RawSendMsg, ip_id: u16) -> std::io::Resul
     // sendto needs the destination even with IP_HDRINCL; kernel uses it for routing.
     let dst = libc::sockaddr_in {
         sin_family: libc::AF_INET as libc::sa_family_t,
-        sin_port:   msg.dst_port.to_be(),
-        sin_addr:   libc::in_addr {
+        sin_port: msg.dst_port.to_be(),
+        sin_addr: libc::in_addr {
             // sockaddr_in.sin_addr.s_addr is in network byte order
             s_addr: u32::from_be_bytes(msg.dst_ip.octets()).to_be(),
         },
@@ -123,14 +134,16 @@ fn checksum(data: &[u8]) -> u16 {
 }
 
 fn build_packet(
-    src_ip: Ipv4Addr, src_port: u16,
-    dst_ip: Ipv4Addr, dst_port: u16,
+    src_ip: Ipv4Addr,
+    src_port: u16,
+    dst_ip: Ipv4Addr,
+    dst_port: u16,
     payload: &[u8],
     ip_id: u16,
 ) -> Vec<u8> {
     let src = src_ip.octets();
     let dst = dst_ip.octets();
-    let udp_len  = 8u16 + payload.len() as u16;
+    let udp_len = 8u16 + payload.len() as u16;
     let total_len = 20u16 + udp_len;
 
     // ── UDP checksum (via pseudo-header) ─────────────────────────────────────
@@ -150,21 +163,23 @@ fn build_packet(
     pseudo.extend_from_slice(payload);
 
     let mut udp_cksum = checksum(&pseudo);
-    if udp_cksum == 0 { udp_cksum = 0xFFFF; } // 0 means "no checksum" in UDP
+    if udp_cksum == 0 {
+        udp_cksum = 0xFFFF;
+    } // 0 means "no checksum" in UDP
 
     // ── assemble packet ───────────────────────────────────────────────────────
     let mut pkt = vec![0u8; total_len as usize];
 
     // IPv4 header (20 bytes, no options)
-    pkt[0]  = 0x45;                                    // version=4, IHL=5
-    // [1] DSCP/ECN = 0
+    pkt[0] = 0x45; // version=4, IHL=5
+                   // [1] DSCP/ECN = 0
     pkt[2..4].copy_from_slice(&total_len.to_be_bytes());
     pkt[4..6].copy_from_slice(&ip_id.to_be_bytes());
-    pkt[6]   = 0x40;                                   // flags: DF=1
-    // [7] fragment offset = 0
-    pkt[8]   = 64;                                     // TTL
-    pkt[9]   = 17;                                     // protocol: UDP
-    // [10..12] IP checksum — computed below
+    pkt[6] = 0x40; // flags: DF=1
+                   // [7] fragment offset = 0
+    pkt[8] = 64; // TTL
+    pkt[9] = 17; // protocol: UDP
+                 // [10..12] IP checksum — computed below
     pkt[12..16].copy_from_slice(&src);
     pkt[16..20].copy_from_slice(&dst);
 

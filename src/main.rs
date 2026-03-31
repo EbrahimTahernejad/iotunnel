@@ -21,18 +21,22 @@ async fn main() -> Result<()> {
         .nth(1)
         .unwrap_or_else(|| "config.toml".to_owned());
 
-    let raw = std::fs::read_to_string(&config_path)
-        .with_context(|| format!("read {config_path}"))?;
-    let cfg: config::Config = toml::from_str(&raw)
-        .with_context(|| format!("parse {config_path}"))?;
+    let raw =
+        std::fs::read_to_string(&config_path).with_context(|| format!("read {config_path}"))?;
+    let cfg: config::Config =
+        toml::from_str(&raw).with_context(|| format!("parse {config_path}"))?;
 
     let result = match cfg.mode.as_str() {
         "server" => {
-            let scfg = cfg.server.context("mode=server but [server] section missing")?;
+            let scfg = cfg
+                .server
+                .context("mode=server but [server] section missing")?;
             server::run(scfg).await
         }
         "client" => {
-            let ccfg = cfg.client.context("mode=client but [client] section missing")?;
+            let ccfg = cfg
+                .client
+                .context("mode=client but [client] section missing")?;
             client::run(ccfg).await
         }
         m => anyhow::bail!("unknown mode {m:?} — must be \"server\" or \"client\""),

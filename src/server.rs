@@ -21,7 +21,7 @@ use crate::raw_send::{RawSendMsg, RawSender};
 // ── protocol constants ────────────────────────────────────────────────────────
 
 const TYPE_REGISTER: u8 = 0x01; // 13-byte payload (see below)
-const TYPE_DATA: u8     = 0x02; // variable payload
+const TYPE_DATA: u8 = 0x02; // variable payload
 
 // REGISTER payload layout (12 bytes after the type byte):
 //   real_ip       [4]  big-endian
@@ -33,9 +33,9 @@ const TYPE_DATA: u8     = 0x02; // variable payload
 
 #[derive(Clone)]
 struct ClientInfo {
-    real_ip:        Ipv4Addr,
+    real_ip: Ipv4Addr,
     downstream_port: u16,
-    spoof_src_ip:   Ipv4Addr,
+    spoof_src_ip: Ipv4Addr,
     spoof_src_port: u16,
 }
 
@@ -67,25 +67,29 @@ pub async fn run(cfg: ServerConfig) -> Result<()> {
     // ── Task A: upstream (tunnel) → backend ──────────────────────────────────
     {
         let upstream = upstream.clone();
-        let backend  = backend.clone();
-        let client   = client.clone();
+        let backend = backend.clone();
+        let client = client.clone();
 
         tokio::spawn(async move {
             let mut buf = vec![0u8; 65_536];
             loop {
                 let (n, _src) = match upstream.recv_from(&mut buf).await {
-                    Ok(v)  => v,
-                    Err(e) => { warn!("upstream recv: {e}"); continue; }
+                    Ok(v) => v,
+                    Err(e) => {
+                        warn!("upstream recv: {e}");
+                        continue;
+                    }
                 };
-                if n == 0 { continue; }
+                if n == 0 {
+                    continue;
+                }
 
                 match buf[0] {
                     TYPE_REGISTER if n == 13 => {
                         let ci = parse_register(&buf[1..13]);
                         info!(
                             "client registered: real={}:{} spoof={}:{}",
-                            ci.real_ip, ci.downstream_port,
-                            ci.spoof_src_ip, ci.spoof_src_port,
+                            ci.real_ip, ci.downstream_port, ci.spoof_src_ip, ci.spoof_src_port,
                         );
                         *client.write().await = Some(ci);
                     }
@@ -105,26 +109,31 @@ pub async fn run(cfg: ServerConfig) -> Result<()> {
     // ── Task B: backend → downstream (raw spoofed UDP) ────────────────────────
     {
         let backend = backend.clone();
-        let client  = client.clone();
+        let client = client.clone();
 
         tokio::spawn(async move {
             let mut buf = vec![0u8; 65_536];
             loop {
                 let n = match backend.recv(&mut buf).await {
-                    Ok(n)  => n,
-                    Err(e) => { warn!("backend recv: {e}"); continue; }
+                    Ok(n) => n,
+                    Err(e) => {
+                        warn!("backend recv: {e}");
+                        continue;
+                    }
                 };
-                if n == 0 { continue; }
+                if n == 0 {
+                    continue;
+                }
 
                 let guard = client.read().await;
                 let Some(ci) = guard.as_ref() else { continue };
 
                 raw.send(RawSendMsg {
-                    src_ip:   ci.spoof_src_ip,
+                    src_ip: ci.spoof_src_ip,
                     src_port: ci.spoof_src_port,
-                    dst_ip:   ci.real_ip,
+                    dst_ip: ci.real_ip,
                     dst_port: ci.downstream_port,
-                    payload:  buf[..n].to_vec().into_boxed_slice(),
+                    payload: buf[..n].to_vec().into_boxed_slice(),
                 });
             }
         });
@@ -139,9 +148,14 @@ pub async fn run(cfg: ServerConfig) -> Result<()> {
 
 fn parse_register(b: &[u8]) -> ClientInfo {
     // b is exactly 12 bytes (caller checked n == 13, b = buf[1..13])
-    let real_ip        = Ipv4Addr::new(b[0], b[1], b[2], b[3]);
+    let real_ip = Ipv4Addr::new(b[0], b[1], b[2], b[3]);
     let downstream_port = u16::from_be_bytes([b[4], b[5]]);
-    let spoof_src_ip   = Ipv4Addr::new(b[6], b[7], b[8], b[9]);
-    let spoof_src_port  = u16::from_be_bytes([b[10], b[11]]);
-    ClientInfo { real_ip, downstream_port, spoof_src_ip, spoof_src_port }
+    let spoof_src_ip = Ipv4Addr::new(b[6], b[7], b[8], b[9]);
+    let spoof_src_port = u16::from_be_bytes([b[10], b[11]]);
+    ClientInfo {
+        real_ip,
+        downstream_port,
+        spoof_src_ip,
+        spoof_src_port,
+    }
 }

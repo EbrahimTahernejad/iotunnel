@@ -29,7 +29,7 @@ use crate::config::ClientConfig;
 use crate::iodine::IodineProcess;
 
 const TYPE_REGISTER: u8 = 0x01;
-const TYPE_DATA: u8     = 0x02;
+const TYPE_DATA: u8 = 0x02;
 
 pub async fn run(cfg: ClientConfig) -> Result<()> {
     // 1. Start iodine and wait for our tunnel IP to appear.
@@ -44,8 +44,7 @@ pub async fn run(cfg: ClientConfig) -> Result<()> {
             .await
             .context("bind upstream socket on tunnel IP")?,
     );
-    let server_tunnel: SocketAddr =
-        format!("{}:{}", cfg.server_tun_ip, cfg.tunnel_port).parse()?;
+    let server_tunnel: SocketAddr = format!("{}:{}", cfg.server_tun_ip, cfg.tunnel_port).parse()?;
     upstream.connect(server_tunnel).await?;
     info!("upstream → {server_tunnel} (via iodine TUN)");
 
@@ -68,11 +67,10 @@ pub async fn run(cfg: ClientConfig) -> Result<()> {
     info!("local backend listening on :{}", cfg.local_port);
 
     // Parsed config values used across tasks.
-    let real_ip: Ipv4Addr       = cfg.real_ip.parse()?;
-    let fake_src_ip: Ipv4Addr   = cfg.fake_src_ip.parse()?;
-    let fake_src_port           = cfg.fake_src_port;
-    let fake_src_addr: SocketAddr =
-        format!("{}:{}", cfg.fake_src_ip, cfg.fake_src_port).parse()?;
+    let real_ip: Ipv4Addr = cfg.real_ip.parse()?;
+    let fake_src_ip: Ipv4Addr = cfg.fake_src_ip.parse()?;
+    let fake_src_port = cfg.fake_src_port;
+    let fake_src_addr: SocketAddr = format!("{}:{}", cfg.fake_src_ip, cfg.fake_src_port).parse()?;
 
     // 5. Send initial registration through the tunnel.
     {
@@ -121,8 +119,8 @@ pub async fn run(cfg: ClientConfig) -> Result<()> {
 
     // ── Task A: local backend → upstream (DNS tunnel) ─────────────────────────
     {
-        let upstream   = upstream.clone();
-        let local      = local.clone();
+        let upstream = upstream.clone();
+        let local = local.clone();
         let local_peer = local_peer.clone();
 
         tokio::spawn(async move {
@@ -134,10 +132,15 @@ pub async fn run(cfg: ClientConfig) -> Result<()> {
 
             loop {
                 let (n, peer) = match local.recv_from(&mut data_buf).await {
-                    Ok(v)  => v,
-                    Err(e) => { warn!("local recv: {e}"); continue; }
+                    Ok(v) => v,
+                    Err(e) => {
+                        warn!("local recv: {e}");
+                        continue;
+                    }
                 };
-                if n == 0 { continue; }
+                if n == 0 {
+                    continue;
+                }
 
                 // Track the kcp/tuic client address for downstream delivery.
                 {
@@ -159,17 +162,22 @@ pub async fn run(cfg: ClientConfig) -> Result<()> {
     // ── Task B: downstream (spoofed UDP) → local backend ─────────────────────
     {
         let downstream = downstream.clone();
-        let local      = local.clone();
+        let local = local.clone();
         let local_peer = local_peer.clone();
 
         tokio::spawn(async move {
             let mut buf = vec![0u8; 65_536];
             loop {
                 let (n, from) = match downstream.recv_from(&mut buf).await {
-                    Ok(v)  => v,
-                    Err(e) => { warn!("downstream recv: {e}"); continue; }
+                    Ok(v) => v,
+                    Err(e) => {
+                        warn!("downstream recv: {e}");
+                        continue;
+                    }
                 };
-                if n == 0 { continue; }
+                if n == 0 {
+                    continue;
+                }
 
                 // Only accept packets spoofed from the expected source.
                 if from != fake_src_addr {
@@ -177,7 +185,9 @@ pub async fn run(cfg: ClientConfig) -> Result<()> {
                 }
 
                 // 1-byte null = NAT keepalive echo; discard.
-                if n == 1 && buf[0] == 0x00 { continue; }
+                if n == 1 && buf[0] == 0x00 {
+                    continue;
+                }
 
                 let guard = local_peer.read().await;
                 let Some(peer) = *guard else { continue };
