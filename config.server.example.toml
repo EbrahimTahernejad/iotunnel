@@ -1,0 +1,26 @@
+# iotunnel — server config
+# Run on the machine where iodined is authoritative for your subdomain.
+# Requires CAP_NET_RAW: run as root, or grant with:
+#   sudo setcap cap_net_raw+ep ./iotunnel
+
+mode = "server"
+
+[server]
+iodined_bin  = "./iodined"
+# -f  keep in foreground (required — iotunnel manages the process lifetime)
+# -c  disable source-IP check (needed for clients behind NAT)
+# -P  shared password (must match client)
+# arg1: tunnel network — server takes .1, clients get .2, .3, …
+# arg2: subdomain delegated to this server in your DNS zone
+iodined_args = ["-f", "-c", "-P", "mysecretpassword", "10.0.0.1", "t1.example.com"]
+
+# Must match the IP given as arg1 to iodined above
+tun_ip = "10.0.0.1"
+
+# UDP port for the iotunnel framing protocol inside the tunnel.
+# Does not need to be open on the firewall — traffic flows through iodine.
+tunnel_port = 5300
+
+# Backend to proxy upstream data to and relay responses from.
+# Point this at your kcp/tuic/WireGuard server process.
+backend_addr = "127.0.0.1:443"

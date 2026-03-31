@@ -1,0 +1,38 @@
+# iotunnel — client config
+# Run on the restricted machine. No special privileges required.
+
+mode = "client"
+
+[client]
+iodine_bin  = "./iodine"
+# -f  keep in foreground (required — iotunnel manages the process lifetime)
+# -r  use the specified DNS server instead of the system resolver
+# arg1: DNS resolver / relay IP (or your iodined server IP for LAN testing)
+# arg2: subdomain delegated to the iodined server
+# -P  shared password (must match server)
+iodine_args = ["-f", "-r", "203.0.113.1", "t1.example.com", "-P", "mysecretpassword"]
+
+# Tunnel IPs assigned by iodined (default /27 — first client gets .2)
+tun_ip        = "10.0.0.2"
+server_tun_ip = "10.0.0.1"
+tunnel_port   = 5300          # must match server
+
+# Your real public IP — the server sends raw UDP packets here
+real_ip = "198.51.100.42"
+
+# Port to bind for receiving downstream spoofed UDP.
+# 0 = OS-assigned; the actual port is sent to the server in the REGISTER packet.
+downstream_port = 0
+
+# The server spoofs downstream packets as if they come from this IP:port.
+# Choose a real internet endpoint your NAT already has a session for, or one
+# it won't block (e.g. a well-known public server on a common port).
+# iotunnel sends keepalives here automatically to keep the NAT entry alive.
+fake_src_ip   = "8.8.8.8"
+fake_src_port = 443
+
+# Local UDP port your kcp/tuic client should connect to (127.0.0.1:<local_port>)
+local_port = 10443
+
+# How often (seconds) to send a keepalive to fake_src to hold the NAT mapping
+nat_keepalive_secs = 5

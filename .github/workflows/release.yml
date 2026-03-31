@@ -46,10 +46,11 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           STAGING="iotunnel-${TAG}-linux-x86_64"
           mkdir "$STAGING"
-          cp target/release/iotunnel "$STAGING/"
-          cp iodine/iodine   "$STAGING/"
-          cp iodine/iodined  "$STAGING/"
-          cp config.example.toml "$STAGING/"
+          cp target/release/iotunnel    "$STAGING/"
+          cp iodine/iodine              "$STAGING/"
+          cp iodine/iodined             "$STAGING/"
+          cp config.server.example.toml "$STAGING/"
+          cp config.client.example.toml "$STAGING/"
           tar -czf "iotunnel-linux-x86_64.tar.gz" "$STAGING"
 
       - name: Upload artifact
