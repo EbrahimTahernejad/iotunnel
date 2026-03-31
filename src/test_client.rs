@@ -7,13 +7,17 @@
 ///   4. Send `pings` 8-byte echo messages and measure round-trip time.
 ///   5. Kill iodine and wait briefly for the TUN to be torn down.
 ///
-/// Results are sorted by average RTT (unreachable resolvers sort last).
+/// Results are sorted by average RTT (unreachable resolvers sort last)
+/// and written to results.csv in the current directory.
+use std::io::Write;
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time;
+
+const CSV_PATH: &str = "results.csv";
 
 use crate::config::TestConfig;
 use crate::iodine::IodineProcess;
@@ -67,6 +71,7 @@ pub async fn run(cfg: TestConfig) -> Result<()> {
     results.sort_by_key(avg_micros);
 
     print_table(&results);
+    write_csv(&results)?;
     Ok(())
 }
 
@@ -283,4 +288,43 @@ fn print_table(results: &[ProbeResult]) {
             );
         }
     }
+}
+
+fn write_csv(results: &[ProbeResult]) -> Result<()> {
+    let mut f = std::fs::File::create(CSV_PATH)?;
+    writeln!(f, "rank,resolver,avg_rtt_ms,min_rtt_ms,pkts,status")?;
+    for (rank, r) in results.iter().enumerate() {
+        match &r.outcome {
+            Outcome::Ok { rtts, avg_rtt } => {
+                let min_ms = rtts.iter().min().copied().unwrap_or_default().as_secs_f64() * 1000.0;
+                writeln!(
+                    f,
+                    "{},{},{:.3},{:.3},{},ok",
+                    rank + 1,
+                    r.resolver,
+                    avg_rtt.as_secs_f64() * 1000.0,
+                    min_ms,
+                    rtts.len(),
+                )?;
+            }
+            Outcome::TunnelTimeout => {
+                writeln!(f, "{},{},,,0,tunnel_timeout", rank + 1, r.resolver)?;
+            }
+            Outcome::ConnectFailed(e) => {
+                // Escape any commas in the error string.
+                let e_safe = e.replace(',', ";");
+                writeln!(
+                    f,
+                    "{},{},,,0,connect_failed: {e_safe}",
+                    rank + 1,
+                    r.resolver
+                )?;
+            }
+            Outcome::NoPings => {
+                writeln!(f, "{},{},,,0,no_pings", rank + 1, r.resolver)?;
+            }
+        }
+    }
+    println!("\nResults saved to {CSV_PATH}");
+    Ok(())
 }
