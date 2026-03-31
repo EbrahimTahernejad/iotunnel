@@ -63,5 +63,5 @@ jobs:
 
       - name: Smoke-test binaries exist
         run: |
-          test -f iodine/iodine
-          test -f iodine/iodined
+          test -f iodine/bin/iodine
+          test -f iodine/bin/iodined
