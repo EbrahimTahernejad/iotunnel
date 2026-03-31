@@ -1,0 +1,13 @@
+# Claude
+.claude/settings.local.json
+
+# Reference implementation (not part of this project)
+/QQ-Tunnel/
+
+# Rust build artifacts
+/target/
+
+# Compiled iodine binaries
+/iodine/bin/
+/iodine/iodine
+/iodine/iodined

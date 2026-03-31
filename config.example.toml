@@ -1,0 +1,59 @@
+# ── Server example ─────────────────────────────────────────────────────────────
+# Run on the machine where iodined is authoritative for your subdomain.
+# Requires CAP_NET_RAW (run as root or: setcap cap_net_raw+ep ./target/release/iotunnel)
+
+mode = "server"
+
+[server]
+iodined_bin  = "./iodine/bin/iodined"
+# -f  keep in foreground (required — we manage the process)
+# -c  disable IP check (allows clients behind NAT)
+# -P  password
+# arg1: tunnel network (server gets .1, clients get .2+)
+# arg2: authoritative domain
+iodined_args = ["-f", "-c", "-P", "mysecretpassword", "10.0.0.1", "t1.example.com"]
+
+# Must match the first address arg above
+tun_ip      = "10.0.0.1"
+# Internal UDP port for our framing protocol over the tunnel
+tunnel_port = 5300
+# Local kcp/tuic server address
+backend_addr = "127.0.0.1:443"
+
+
+# ── Client example ─────────────────────────────────────────────────────────────
+# Uncomment and use a separate config.toml on the client machine.
+
+# mode = "client"
+#
+# [client]
+# iodine_bin  = "./iodine/bin/iodine"
+# # -f  foreground
+# # -r  use specified DNS server, skip system resolver
+# # arg1: DNS relay / your iodined server IP
+# # arg2: domain
+# iodine_args = ["-f", "-r", "203.0.113.1", "t1.example.com", "-P", "mysecretpassword"]
+#
+# # Tunnel IPs assigned by iodined (default /27 subnet)
+# tun_ip        = "10.0.0.2"
+# server_tun_ip = "10.0.0.1"
+# tunnel_port   = 5300
+#
+# # Our real public IP — server sends raw UDP here
+# real_ip = "198.51.100.42"
+#
+# # Port we bind for receiving downstream spoofed UDP.
+# # 0 = OS picks; the assigned port is sent to server in the REGISTER packet.
+# downstream_port = 0
+#
+# # The server will spoof downstream packets as if they come from this IP:port.
+# # Pick an IP that your ISP/NAT won't block (e.g. a well-known UDP server).
+# # You need to send keepalives to this IP:port so the NAT session stays alive.
+# fake_src_ip   = "8.8.8.8"
+# fake_src_port = 443
+#
+# # Local port the kcp/tuic client connects to
+# local_port = 10443
+#
+# # Keepalive interval to maintain NAT entry (seconds)
+# nat_keepalive_secs = 5
