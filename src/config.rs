@@ -57,23 +57,13 @@ pub struct ClientConfig {
 
 #[derive(Deserialize, Clone)]
 pub struct TestConfig {
-    /// Path to iodine client binary
-    pub iodine_bin: String,
-    /// Iodine args with "RESOLVER" as a placeholder for the resolver IP, e.g.:
+    /// Iodine args containing the topdomain and "RESOLVER" placeholder, e.g.:
     ///   ["-f", "-r", "RESOLVER", "t1.example.com", "-P", "secret"]
-    /// "RESOLVER" is substituted with each resolver in the list at test time.
+    /// The topdomain is extracted from these args automatically.
+    /// "RESOLVER" is only used to locate the nameserver position; the actual
+    /// DNS probes are sent directly (iodine is not spawned in test mode).
     pub iodine_args: Vec<String>,
-    /// Client tunnel IP iodined will assign (typically 10.0.0.2)
-    pub tun_ip: String,
-    /// Server tunnel IP
-    pub server_tun_ip: String,
-    /// Must match server's test_port
-    pub test_port: u16,
-    /// Number of pings per resolver
-    pub pings: u32,
-    /// Seconds to wait for the iodine tunnel to come up before declaring failure
-    pub connect_timeout_secs: u64,
-    /// Seconds to wait for a single ping reply before giving up
+    /// Seconds to wait for a DNS reply before declaring no-reply
     pub ping_timeout_secs: u64,
     /// DNS resolvers to test, e.g. ["8.8.8.8", "1.1.1.1"]
     pub resolvers: Vec<String>,
