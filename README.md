@@ -151,6 +151,8 @@ iodine_bin  = "./iodine"
 # "8.8.8.8" = nameserver positional arg (omit to use /etc/resolv.conf)
 # "t1.example.com" = topdomain positional arg
 iodine_args = ["-f", "-r", "8.8.8.8", "t1.example.com", "-P", "mysecretpassword"]
+#                          ^^^^^^^^^^^
+#                          nameserver IP (always required)
 
 tun_ip        = "10.0.0.2"
 server_tun_ip = "10.0.0.1"
@@ -166,7 +168,7 @@ nat_keepalive_secs = 5
 
 | Field | Description |
 |-------|-------------|
-| `iodine_args` | `-f` required; `-r` skips raw UDP mode (recommended); nameserver is the optional first positional arg before the domain |
+| `iodine_args` | `-f` required; `-r` skips raw UDP mode (recommended); nameserver is the first positional arg before the domain |
 | `tun_ip` | Our tunnel IP — iodined assigns sequentially starting at `.2` |
 | `real_ip` | Our public IP; the server raw-sends downstream UDP here |
 | `downstream_port` | Receive port for downstream; `0` lets the OS pick one |
