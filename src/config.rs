@@ -57,14 +57,10 @@ pub struct ClientConfig {
 
 #[derive(Deserialize, Clone)]
 pub struct TestConfig {
-    /// Iodine args containing the topdomain and "RESOLVER" placeholder, e.g.:
-    ///   ["-f", "-r", "RESOLVER", "t1.example.com", "-P", "secret"]
-    /// The topdomain is extracted from these args automatically.
-    /// "RESOLVER" is only used to locate the nameserver position; the actual
-    /// DNS probes are sent directly (iodine is not spawned in test mode).
     pub iodine_args: Vec<String>,
-    /// Seconds to wait for a DNS reply before declaring no-reply
     pub ping_timeout_secs: u64,
-    /// DNS resolvers to test, e.g. ["8.8.8.8", "1.1.1.1"]
-    pub resolvers: Vec<String>,
+    /// Path to a text file with one DNS resolver IP per line
+    pub resolvers_file: String,
+    /// Number of concurrent probe workers (default: 8)
+    pub workers: Option<usize>,
 }

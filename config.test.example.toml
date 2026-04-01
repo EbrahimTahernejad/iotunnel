@@ -16,11 +16,9 @@ iodine_args = ["-f", "-r", "RESOLVER", "t1.example.com", "-P", "mysecretpassword
 # Seconds to wait for a DNS reply from each resolver before giving up
 ping_timeout_secs = 5
 
-# DNS resolvers to rank
-resolvers = [
-    "8.8.8.8",
-    "8.8.4.4",
-    "1.1.1.1",
-    "1.0.0.1",
-    "9.9.9.9",
-]
+# Path to a text file with one DNS resolver IP per line.
+# Empty lines and lines starting with '#' are skipped.
+resolvers_file = "resolvers.txt"
+
+# Number of concurrent probe workers (default: 8)
+workers = 8
